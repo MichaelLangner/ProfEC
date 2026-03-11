@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% load group_tags %}
+{% load static %}
+
+{% block title %}ProfEC landing site{% endblock %}
+
+{% block content %}
+<h2>What data would you like to access?</h2>
+
+{% if user.is_authenticated %}
+    <div><a href="dashboard_auth">See available general data.(any authorisation required)</a></div> 
+    {% if user|has_any_group:"admin" %}
+            <div>
+                <a href="dashboard_admin">See available admin data.</a> 
+            </div>
+            {% else %}
+            
+            {% endif %}
+    {% if user|has_any_group:"admin,customer" %}
+            <div>
+                <a href="dashboard_customer">See available customer data.</a> 
+            </div>
+            {% else %}
+            
+            {% endif %}
+    {% else %}
+    <div>Please identify yourself, stranger!</div>     
+    {% endif %}
+{% endblock %}
