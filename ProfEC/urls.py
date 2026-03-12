@@ -25,6 +25,9 @@ from concept.views import dashboard_auth
 from concept.views import dashboard_admin
 from concept.views import dashboard_customer
 
+from concept.views import private_file
+
+
 urlpatterns = [
     path(
         "admin/logout/",
@@ -35,7 +38,6 @@ urlpatterns = [
         name="admin-logout"
     ),
     path('admin/', admin.site.urls),
-    path('',index,name="index"),
     
     path("signup/", signup, name="signup"),
     path("login/", auth_views.LoginView.as_view(template_name="login.html"), name="login"),
@@ -44,4 +46,10 @@ urlpatterns = [
     path("dashboard_admin/", dashboard_admin, name="dashboard_admin"),
     path("dashboard_customer/", dashboard_customer, name="dashboard_customer"),
 
+    path('',index,name="index"),
+    
+    path("<str:folder_name>/", index, name="index_folder"),
+    path("<str:folder_name>/<str:file_name>/",private_file,name="private_file"),
+
+    
 ]

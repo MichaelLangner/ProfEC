@@ -1,11 +1,19 @@
 from django.shortcuts import render
 
 # Create your views here.
+# for login/logout
 from django.contrib.auth.forms import UserCreationForm # type: ignore
 from django.shortcuts import render, redirect # type: ignore
 from django.contrib.auth.decorators import login_required # type: ignore
-
 from django.contrib.auth.decorators import user_passes_test # type: ignore
+
+# for fileviewer
+from pathlib import Path
+from django.conf import settings
+from django.http import HttpResponseForbidden
+from django.http import FileResponse
+from django.http import Http404
+
 
 # define decorators
 def group_required(group_name):
@@ -17,10 +25,6 @@ def groups_required(*group_names):
     return user_passes_test(check)
 
 
-# landing page
-def index(request):
-
-    return render(request,"index.html")
 
 # signup replacement 
 def signup(request):
@@ -45,3 +49,76 @@ def dashboard_admin(request):
 @groups_required("admin","customer")
 def dashboard_customer(request):
     return render(request, "dashboard_customer.html")
+
+# restricted file serving on index.html formally known as file browser
+@login_required
+def index(request, folder_name=None):
+    user = request.user
+    base: Path = settings.PRIVATE_STORAGE_ROOT
+
+    # Determine which folders the user can see
+    folders = []
+
+    general_path = base / "General"
+    if general_path.is_dir():
+        folders.append(("General", general_path))
+
+    user_folder = f"{user.id}_{user.username}"
+    user_path = base / user_folder
+    if user_path.is_dir():
+        folders.append((user_folder, user_path))
+
+    if user.is_superuser:
+        for path in base.iterdir():
+            if path.is_dir() and path.name not in [f[0] for f in folders]:
+                folders.append((path.name, path))
+
+    # If a folder is selected, list its files
+    files = []
+    if folder_name:
+        folder_path = base / folder_name
+
+        # Permission check
+        if not user.is_superuser and folder_name != "General":
+            owner_id = int(folder_name.split("_")[0])
+            if owner_id != user.id:
+                return HttpResponseForbidden("Not allowed")
+
+        files = [f.name for f in folder_path.iterdir() if f.is_file()]
+
+    return render(request, "index.html", {
+        "folders": folders,
+        "selected_folder": folder_name,
+        "files": files,
+    })
+
+
+
+@login_required
+def private_file(request, folder_name, file_name):
+    user = request.user
+    base: Path = settings.PRIVATE_STORAGE_ROOT
+
+    folder_path = base / folder_name
+    file_path = folder_path / file_name
+
+    # Permission check (same logic as your browser view)
+    if not user.is_staff and folder_name != "General":
+        owner_id = int(folder_name.split("_")[0])
+        if owner_id != user.id:
+            return HttpResponseForbidden("Not allowed")
+
+    # File exists?
+    if not file_path.exists() or not file_path.is_file():
+        raise Http404("File not found")
+
+    # Return file as download
+    return FileResponse(
+        open(file_path, "rb"),
+        as_attachment=True,
+        filename=file_name
+    )
+
+
+
+
