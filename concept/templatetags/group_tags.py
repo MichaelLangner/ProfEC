@@ -6,6 +6,8 @@ register = template.Library()
 def has_any_group(user, group_names):
     if not user.is_authenticated:
         return False
+    if user.is_superuser:
+        return True
 
     # group_names is a comma-separated string: "Admin,Staff,Editor"
     group_list = [name.strip() for name in group_names.split(",")]

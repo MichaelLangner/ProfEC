@@ -6,6 +6,8 @@
 <p>Welcome to your private area, {{ user.username }}.</p>
 
 <ul class="list-group mt-4">
+    <li class="list-group-item">First Name: {{ user.first_name }}</li>
+    <li class="list-group-item">Last Name: {{ user.last_name }}</li>
     <li class="list-group-item">Your email: {{ user.email }}</li>
     <li class="list-group-item">Account created: {{ user.date_joined }}</li>
 </ul>

@@ -8,17 +8,17 @@
 <h2>What area would you like to visit?</h2>
 
 {% if user.is_authenticated %}
-    <div><a href="dashboard_auth">Go to member area.</a></div> 
+    <div><a href="/dashboard_auth">Go to member area.</a></div> 
     {% if user|has_any_group:"admin" %}
             <div>
-                <a href="dashboard_admin">Go to admin area.</a> 
+                <a href="/dashboard_admin">Go to admin area.</a> 
             </div>
             {% else %}
             
             {% endif %}
     {% if user|has_any_group:"admin,customer" %}
             <div>
-                <a href="dashboard_customer">Go to customer area.</a> 
+                <a href="/dashboard_customer">Go to customer area.</a> 
             </div>
             {% else %}
             
