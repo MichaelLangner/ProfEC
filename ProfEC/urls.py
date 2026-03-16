@@ -19,14 +19,19 @@ from django.urls import path
 
 from django.contrib.auth import views as auth_views 
 from django.contrib.auth.views import LogoutView 
-from concept.views import index
+from concept.views import files
 from concept.views import signup
 from concept.views import dashboard_auth
 from concept.views import dashboard_admin
 from concept.views import dashboard_customer
 
-from concept.views import private_file
+from concept.views import download_file
+from concept.views import view_file
+from concept.views import plot_file
 
+from django.conf import settings
+from django.conf.urls.static import static
+from django.shortcuts import redirect
 
 urlpatterns = [
     path(
@@ -46,10 +51,18 @@ urlpatterns = [
     path("dashboard_admin/", dashboard_admin, name="dashboard_admin"),
     path("dashboard_customer/", dashboard_customer, name="dashboard_customer"),
 
-    path('',index,name="index"),
-    
-    path("<str:folder_name>/", index, name="index_folder"),
-    path("<str:folder_name>/<str:file_name>/",private_file,name="private_file"),
+    path("", lambda request: redirect("files_root"), name="index"),
 
+    path("files/", files, name="files_root"),
     
+    # Folder listing
+    path("files/<str:folder_name>/", files, name="index_folder"),
+
+    # File actions
+    path("files/<str:folder_name>/<str:file_name>/download",download_file,name="download_file"),
+    path("files/<str:folder_name>/<str:file_name>/view",view_file,name="view_file"),
+    path("files/<str:folder_name>/<str:file_name>/plot",plot_file,name="plot_file"),
 ]
+
+if settings.DEBUG:
+    urlpatterns += static(settings.STATIC_URL, document_root=settings.STATICFILES_DIRS[0])

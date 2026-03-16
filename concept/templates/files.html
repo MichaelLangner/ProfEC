@@ -1,0 +1,72 @@
+{% extends "base.html" %}
+{% load group_tags %}
+{% load static %}
+
+{% block title %}ProfEC landing site{% endblock %}
+
+{% block content %}
+<h2>What area would you like to visit?</h2>
+
+{% if user.is_authenticated %}
+    <div><a href="/dashboard_auth">Go to member area.</a></div> 
+    {% if user|has_any_group:"admin" %}
+            <div>
+                <a href="/dashboard_admin">Go to admin area.</a> 
+            </div>
+            {% else %}
+            
+            {% endif %}
+    {% if user|has_any_group:"admin,customer" %}
+            <div>
+                <a href="/dashboard_customer">Go to customer area.</a> 
+            </div>
+            {% else %}
+            
+            {% endif %}
+    
+    <h2>Your available data:</h2>
+
+    <ul>
+        {% for folder_name, folder_path in folders %}
+            <li>
+                <a href="{% url 'index_folder' folder_name %}">
+                    📁 {{ folder_name }}
+                </a>
+
+                {% if selected_folder == folder_name %}
+                    <ul>
+                        {% for file in files %}
+                            <li>
+                                📄 {{ file.name }} &emsp;
+                                <a href="{% url 'download_file' folder_name file.name %}"><i class="fa fa-download"></i></a>
+                                
+                                {% if file.displayable %}
+                                    &emsp;
+                                    <a href="{% url 'view_file' folder_name file.name %}" target="_blank"><i class="fa fa-eye"></i></a>
+                                {% else %}
+
+                                {% endif %}
+
+                                {% if file.plotable %}
+                                    &emsp;
+                                    <a href="{% url 'plot_file' folder_name file.name %}"><i class="fa-solid fa-chart-line"></i></a>
+                                {% else %}
+
+                                {% endif %}
+
+                        {% empty %}
+                            <li><em>No files in this folder</em></li>
+                        {% endfor %}
+                    </ul>
+                {% endif %}
+            </li>
+        {% endfor %}
+    </ul>
+    
+    {% else %}
+    <div>Please identify yourself, stranger!</div>     
+    {% endif %}
+
+    
+
+{% endblock %}

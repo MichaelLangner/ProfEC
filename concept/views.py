@@ -13,22 +13,28 @@ from django.conf import settings
 from django.http import HttpResponseForbidden
 from django.http import FileResponse
 from django.http import Http404
+import mimetypes
 
 #adjusting my custom signup dialog to include more parameters
 from .forms import CustomUserCreationForm
 from django.contrib.auth.models import Group
 
+# for data
+import json
+
 
 # define decorators
 def group_required(group_name):
-    return user_passes_test(lambda user: user.is_authenticated and user.groups.filter(name=group_name).exists())
+    return user_passes_test(lambda user: user.is_authenticated and (user.groups.filter(name=group_name).exists() or user.is_superuser))
 
 def groups_required(*group_names):
     def check(user):
-        return user.is_authenticated and user.groups.filter(name__in=group_names).exists()
+        return user.is_authenticated and (user.groups.filter(name__in=group_names).exists() or user.is_superuser)
     return user_passes_test(check)
 
-
+# index dummy
+def index(request):
+    return render(request,"index.html")
 
 # signup replacement 
 def signup(request):
@@ -60,8 +66,20 @@ def dashboard_customer(request):
     return render(request, "dashboard_customer.html")
 
 # restricted file serving on index.html formally known as file browser
+DISPLAYABLE_MIME_TYPES = {
+    "image/jpeg",
+    "image/png",
+    "image/gif",
+    "image/webp",
+    "text/plain",
+    "application/pdf",
+}
 
-def index(request, folder_name=None):
+PLOTABLE_FILE_TYPES = {
+    "csv",
+}
+
+def files(request, folder_name=None):
     user = request.user
     base: Path = settings.PRIVATE_STORAGE_ROOT
 
@@ -93,9 +111,20 @@ def index(request, folder_name=None):
             if owner_id != user.id:
                 return HttpResponseForbidden("Not allowed")
 
-        files = [f.name for f in folder_path.iterdir() if f.is_file()]
+        #files = [f.name for f in folder_path.iterdir() if f.is_file()]
+        for file in folder_path.iterdir():
+            mime_type, _ = mimetypes.guess_type(str(file))
+            
 
-    return render(request, "index.html", {
+            files.append({
+                "name": file.name,
+                "displayable": mime_type in DISPLAYABLE_MIME_TYPES,
+                "plotable": file.name.split(".")[1] in PLOTABLE_FILE_TYPES,
+            })
+            
+
+
+    return render(request, "files.html", {
         "folders": folders,
         "selected_folder": folder_name,
         "files": files,
@@ -104,7 +133,7 @@ def index(request, folder_name=None):
 
 
 @login_required
-def private_file(request, folder_name, file_name):
+def download_file(request, folder_name, file_name):
     user = request.user
     base: Path = settings.PRIVATE_STORAGE_ROOT
 
@@ -129,6 +158,99 @@ def private_file(request, folder_name, file_name):
         filename=file_name
     )
 
+@login_required
+def view_file(request, folder_name, file_name):
+    user = request.user
+    base: Path = settings.PRIVATE_STORAGE_ROOT
 
+    folder_path = base / folder_name
+    file_path = folder_path / file_name
 
+    # Permission check (unchanged)
+    if not (user.is_superuser or request.user.groups.filter(name="customer").exists()) and folder_name != "General":
+        owner_id = int(folder_name.split("_")[0])
+        if owner_id != user.id:
+            return HttpResponseForbidden("Not allowed")
+
+    # File exists?
+    if not file_path.exists() or not file_path.is_file():
+        raise Http404("File not found")
+
+    # Detect MIME type (important for inline display)
+    import mimetypes
+    mime_type, _ = mimetypes.guess_type(file_path)
+
+    # Return file inline
+    return FileResponse(
+        open(file_path, "rb"),
+        as_attachment=False,  
+        filename=file_name,
+        content_type=mime_type or "application/octet-stream"
+    )
+
+@login_required
+def plot_file(request, folder_name, file_name):
+    user = request.user
+    base: Path = settings.PRIVATE_STORAGE_ROOT
+
+    folder_path = base / folder_name
+    file_path = folder_path / file_name
+
+    # Permission check (unchanged)
+    if not (user.is_superuser or request.user.groups.filter(name="customer").exists()) and folder_name != "General":
+        owner_id = int(folder_name.split("_")[0])
+        if owner_id != user.id:
+            return HttpResponseForbidden("Not allowed")
+
+    # File exists?
+    if not file_path.exists() or not file_path.is_file():
+        raise Http404("File not found")
+    # read file
+    with open(file_path, "r", encoding="utf-8") as f:
+        content = f.read()
+    
+    # parse content
+    lines = content.splitlines()
+    header_x=lines[0].split(",")[0]
+    header_y=lines[0].split(",")[1]
+    header_x_json=json.dumps(header_x)
+    header_y_json=json.dumps(header_y)
+    title_json=json.dumps(file_name)
+
+    l=len(lines)
+
+   
+    data_x=[]
+    for i in range(1,l):
+        data_x.append(lines[i].split(",")[0])
+    
+    data_x_json=json.dumps(data_x)
+    
+    
+    data_y=[]
+    for i in range(1,l):
+        data_y.append(lines[i].split(",")[1])
+    
+    data_y_json=json.dumps(data_y)
+    
+    
+
+    # return header and data
+    return render(request, "plot_file.html", {
+            "file_name": file_name,
+            "folder_name": folder_name,
+            "header_x_json": header_x_json,
+            "header_y_json": header_y_json,
+            "data_x_json": data_x_json,
+            "data_y_json": data_y_json,
+            "title_json": title_json,
+
+        })
+
+def try_float(v):
+   
+   try:
+       return float(v)
+   except Exception:
+       return 'nan'
 

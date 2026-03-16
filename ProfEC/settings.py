@@ -132,6 +132,7 @@ STATICFILES_DIRS = [BASE_DIR / "static"]
 # Create this folder manually next to manage.py
 PROTECTED_FILES_ROOT = BASE_DIR / 'private_files'
 PRIVATE_STORAGE_ROOT = BASE_DIR / 'private_files'
+
 # Login/Logout behaviour
 LOGIN_URL = "login"
 LOGIN_REDIRECT_URL = "index"

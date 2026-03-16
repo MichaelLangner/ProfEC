@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+{% load group_tags %}
+{% load static %}
+
+{% block content %}
+
+<!-- Load Plotly -->
+<script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+
+<div id="chart"></div>
+<p>Data X: {{ data_x_json }}</p>
+<p>Data Y: {{ data_y_json }}</p>
+<script>
+    // Get the data from Django
+    const data_x_json = JSON.parse('{{ data_x_json|escapejs }}');
+    const data_y_json = JSON.parse('{{ data_y_json|escapejs }}');
+    const header_x_json = JSON.parse('{{ header_x_json|escapejs }}');
+    const header_y_json = JSON.parse('{{ header_y_json|escapejs }}');
+    const title_json = JSON.parse('{{ title_json|escapejs }}');
+
+    // Create the plot
+    const trace = {
+        x: data_x_json,
+        y: data_y_json,
+        mode: 'lines+markers',
+        type: 'scatter'
+    };
+
+    const layout = {
+        title: title_json,
+        xaxis: { title: header_x_json,
+            showline: true,
+            linewidth: 2,
+            linecolor: 'black',
+            mirror: true,
+            showgrid: true,
+            gridcolor: '#e0e0e0'
+        },
+        yaxis: { title: header_y_json,
+            showline: true,
+            linewidth: 2,
+            linecolor: 'black',
+            mirror: true,
+            showgrid: true,
+            gridcolor: '#e0e0e0'
+        },
+        showlegend: false,
+        autosize: true,
+       
+        width: 1000,
+        height: 500
+    };
+    
+
+    Plotly.newPlot('chart', [trace], layout);
+</script>
+
+{% endblock %}
