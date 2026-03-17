@@ -72,6 +72,7 @@ DISPLAYABLE_MIME_TYPES = {
     "image/gif",
     "image/webp",
     "text/plain",
+    "text/csv",
     "application/pdf",
 }
 
@@ -112,6 +113,8 @@ def files(request, folder_name=None):
                 return HttpResponseForbidden("Not allowed")
 
         #files = [f.name for f in folder_path.iterdir() if f.is_file()]
+        mimetypes.add_type("text/csv", ".csv", strict=True)
+        mimetypes.add_type("text/plain", ".csv", strict=False)
         for file in folder_path.iterdir():
             mime_type, _ = mimetypes.guess_type(str(file))
             
@@ -177,16 +180,20 @@ def view_file(request, folder_name, file_name):
         raise Http404("File not found")
 
     # Detect MIME type (important for inline display)
-    import mimetypes
+    mimetypes.add_type("text/csv", ".csv", strict=True)
+    mimetypes.add_type("text/plain", ".csv", strict=False)
     mime_type, _ = mimetypes.guess_type(file_path)
+    if mime_type in ("text/csv", None): # force text/plain 
+        mime_type = "text/plain"
 
-    # Return file inline
+    # Return file inline 
     return FileResponse(
         open(file_path, "rb"),
         as_attachment=False,  
         filename=file_name,
-        content_type=mime_type or "application/octet-stream"
+        content_type=mime_type or "text/plain" 
     )
+
 
 @login_required
 def plot_file(request, folder_name, file_name):
@@ -211,28 +218,44 @@ def plot_file(request, folder_name, file_name):
     
     # parse content
     lines = content.splitlines()
-    header_x=lines[0].split(",")[0]
-    header_y=lines[0].split(",")[1]
-    header_x_json=json.dumps(header_x)
-    header_y_json=json.dumps(header_y)
-    title_json=json.dumps(file_name)
-
     l=len(lines)
+    #check if filestructure is correct (always to comma seperated values in each line)
+    ok=1
+    for i in range(0,l):
+        if (len(lines[i].split(","))!=2): 
+            ok=0
 
-   
-    data_x=[]
-    for i in range(1,l):
-        data_x.append(lines[i].split(",")[0])
+    if (ok):
+        header_x=lines[0].split(",")[0]
+        header_y=lines[0].split(",")[1]
+        header_x_json=json.dumps(header_x)
+        header_y_json=json.dumps(header_y)
+        title_json=json.dumps(file_name)
     
-    data_x_json=json.dumps(data_x)
-    
-    
-    data_y=[]
-    for i in range(1,l):
-        data_y.append(lines[i].split(",")[1])
-    
-    data_y_json=json.dumps(data_y)
-    
+        data_x=[]
+        for i in range(1,l):
+            data_x.append(lines[i].split(",")[0])
+        
+        data_x_json=json.dumps(data_x)
+        
+        
+        data_y=[]
+        for i in range(1,l):
+            data_y.append(lines[i].split(",")[1])
+        
+        data_y_json=json.dumps(data_y)
+    else: # default if data structure is not recognized
+        header_x='none'
+        header_y='none'
+        header_x_json=json.dumps(header_x)
+        header_y_json=json.dumps(header_y)
+        title_json=json.dumps(file_name+' data structure not recognized')
+
+        data_x=[]
+        data_x_json=json.dumps(data_x)       
+        
+        data_y=[]
+        data_y_json=json.dumps(data_y)
     
 
     # return header and data

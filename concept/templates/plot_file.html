@@ -7,9 +7,10 @@
 <!-- Load Plotly -->
 <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
 
-<div id="chart"></div>
+<div id="chart" style="width:100%;"></div>
 <p>Data X: {{ data_x_json }}</p>
 <p>Data Y: {{ data_y_json }}</p>
+
 <script>
     // Get the data from Django
     const data_x_json = JSON.parse('{{ data_x_json|escapejs }}');
@@ -46,13 +47,12 @@
         },
         showlegend: false,
         autosize: true,
-       
-        width: 1000,
+        
         height: 500
     };
     
 
-    Plotly.newPlot('chart', [trace], layout);
+    Plotly.newPlot('chart', [trace], layout, {responsive: true});
 </script>
 
 {% endblock %}
