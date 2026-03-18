@@ -17,20 +17,14 @@ Including another URLconf
 
 from django.urls import path 
 
-from django.conf import settings
-from django.conf.urls.static import static
-from django.shortcuts import redirect
-from django.urls import path, include
+from dashboards.views import dashboard_auth
+from dashboards.views import dashboard_admin
+from dashboards.views import dashboard_customer
 
 urlpatterns = [
-    
-
-    path("", lambda request: redirect("files_root"), name="index"),
-
-    path('accounts/', include('accounts.urls')),
-    path('dashboards/', include('dashboards.urls')),
-    path('files/', include('files.urls')),
+    path("dashboard_auth/", dashboard_auth, name="dashboard_auth"),
+    path("dashboard_admin/", dashboard_admin, name="dashboard_admin"),
+    path("dashboard_customer/", dashboard_customer, name="dashboard_customer"),
 ]
 
-if settings.DEBUG:
-    urlpatterns += static(settings.STATIC_URL, document_root=settings.STATICFILES_DIRS[0])
+

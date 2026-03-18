@@ -8,7 +8,7 @@ def create_groups(apps, schema_editor):
 class Migration(migrations.Migration):
 
     dependencies = [
-        ("concept", "0001_initial"),
+        ("accounts", "0001_initial"),
         ("auth", "0012_alter_user_first_name_max_length"), 
     ]
 

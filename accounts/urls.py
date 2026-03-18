@@ -14,23 +14,30 @@ Including another URLconf
     1. Import the include() function: from django.urls import include, path
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
-
+from django.contrib import admin 
 from django.urls import path 
 
-from django.conf import settings
-from django.conf.urls.static import static
-from django.shortcuts import redirect
-from django.urls import path, include
+from django.contrib.auth import views as auth_views 
+from django.contrib.auth.views import LogoutView 
+
+from accounts.views import signup
+
+
 
 urlpatterns = [
+    path(
+        "admin/logout/",
+        auth_views.LogoutView.as_view(
+            template_name="admin/logout.html",
+            next_page="/admin/login/"
+        ),
+        name="admin-logout"
+    ),
+    path('admin/', admin.site.urls),
     
-
-    path("", lambda request: redirect("files_root"), name="index"),
-
-    path('accounts/', include('accounts.urls')),
-    path('dashboards/', include('dashboards.urls')),
-    path('files/', include('files.urls')),
+    path("signup/", signup, name="signup"),
+    path("login/", auth_views.LoginView.as_view(template_name="login.html"), name="login"),
+    path("logout/", auth_views.LogoutView.as_view(template_name="logout.html"), name="logout"),
+    
 ]
 
-if settings.DEBUG:
-    urlpatterns += static(settings.STATIC_URL, document_root=settings.STATICFILES_DIRS[0])

@@ -17,20 +17,21 @@ Including another URLconf
 
 from django.urls import path 
 
-from django.conf import settings
-from django.conf.urls.static import static
-from django.shortcuts import redirect
-from django.urls import path, include
+from files.views import files
+
+from files.views import download_file
+from files.views import view_file
+from files.views import plot_file
 
 urlpatterns = [
+
+    path("", files, name="files_root"),
     
+    # Folder listing
+    path("<str:folder_name>/", files, name="index_folder"),
 
-    path("", lambda request: redirect("files_root"), name="index"),
-
-    path('accounts/', include('accounts.urls')),
-    path('dashboards/', include('dashboards.urls')),
-    path('files/', include('files.urls')),
+    # File actions
+    path("<str:folder_name>/<str:file_name>/download",download_file,name="download_file"),
+    path("<str:folder_name>/<str:file_name>/view",view_file,name="view_file"),
+    path("<str:folder_name>/<str:file_name>/plot",plot_file,name="plot_file"),
 ]
-
-if settings.DEBUG:
-    urlpatterns += static(settings.STATIC_URL, document_root=settings.STATICFILES_DIRS[0])
