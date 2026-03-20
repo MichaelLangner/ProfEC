@@ -88,34 +88,18 @@ def admin_download(request, pk):
 @login_required
 def file_list(request):
     user = request.user
-
-    if user.is_superuser or user.is_staff:
-        files = File_DB.objects.filter(time_deleted__isnull=True).order_by('-time_upload')
-    else:
-       files = File_DB.objects.filter(owner=user)
-    
-    # Add displayability flag to each file
-    for f in files:
-        f.is_displayable = can_inline(f.mimetype)
-        f.is_plotable = can_plot(f.mimetype)
-        f.basename = os.path.basename(f.file.name)
-
-    return render(request, "file_list.html", {"files": files})
-
-
-
-
-def file_list(request):
-    user = request.user
     query = request.GET.get("q", "").strip()
     date_from = request.GET.get("date_from", "")
     date_to = request.GET.get("date_to", "")
-    
+
     # Base queryset depending on permissions
-    if user.is_superuser or user.is_staff:
-        files = File_DB.objects.filter(time_deleted__isnull=True)
+    if user.is_authenticated:
+        if user.is_superuser or user.is_staff:
+            files = File_DB.objects.filter(time_deleted__isnull=True)
+        else:
+            files = File_DB.objects.filter(owner=user)
     else:
-        files = File_DB.objects.filter(owner=user)
+        files = File_DB.objects.filter(is_public=True)
 
     # Apply search filter if query exists
     if query:
