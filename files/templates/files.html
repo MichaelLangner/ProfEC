@@ -32,6 +32,8 @@
                 <a href="{% url 'index_folder' folder_name %}">
                     📁 {{ folder_name }}
                 </a>
+                
+
 
                 {% if selected_folder == folder_name %}
                     <ul>
@@ -53,6 +55,9 @@
                                 {% else %}
 
                                 {% endif %}
+                                &emsp;
+                                <a href="{% url 'delete_file' folder_name file.name%}" target="_blank"><i class="fa-solid fa-trash-can"></i></a>
+
 
                         {% empty %}
                             <li><em>No files in this folder</em></li>
@@ -63,6 +68,9 @@
         {% endfor %}
     </ul>
     
+    <a href="/files/upload" target="_blank"><i class="fa-solid fa-plus"></i></a>
+
+
     {% else %}
     <div>Please identify yourself, stranger!</div>     
     {% endif %}

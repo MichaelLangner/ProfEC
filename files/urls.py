@@ -23,6 +23,7 @@ from files.views import download_file
 from files.views import view_file
 from files.views import plot_file
 
+
 urlpatterns = [
 
     path("", files, name="files_root"),
@@ -34,4 +35,5 @@ urlpatterns = [
     path("<str:folder_name>/<str:file_name>/download",download_file,name="download_file"),
     path("<str:folder_name>/<str:file_name>/view",view_file,name="view_file"),
     path("<str:folder_name>/<str:file_name>/plot",plot_file,name="plot_file"),
+    
 ]

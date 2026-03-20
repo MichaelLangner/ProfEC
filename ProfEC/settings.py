@@ -50,6 +50,7 @@ INSTALLED_APPS = [
     'accounts',
     'dashboards',
     'files',
+    'file_db',
 ]
 
 MIDDLEWARE = [
@@ -131,7 +132,7 @@ USE_TZ = True
 
 STATIC_URL = 'static/'
 STATICFILES_DIRS = [BASE_DIR / "static"]
-
+PROTECTED_MEDIA_ROOT = BASE_DIR / "private_files"
 # Create this folder manually next to manage.py
 PROTECTED_FILES_ROOT = BASE_DIR / 'private_files'
 PRIVATE_STORAGE_ROOT = BASE_DIR / 'private_files'

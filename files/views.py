@@ -13,6 +13,7 @@ import mimetypes
 # for data
 import json
 
+
 # restricted file serving on index.html formally known as file browser
 DISPLAYABLE_MIME_TYPES = {
     "image/jpeg",
@@ -217,4 +218,10 @@ def plot_file(request, folder_name, file_name):
             "title_json": title_json,
 
         })
+
+
+    
+
+
+
 

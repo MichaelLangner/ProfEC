@@ -16,20 +16,30 @@ Including another URLconf
 """
 
 from django.urls import path 
-
+from django.contrib import admin 
+from django.contrib.auth.views import LogoutView 
 from django.conf import settings
 from django.conf.urls.static import static
 from django.shortcuts import redirect
 from django.urls import path, include
 
 urlpatterns = [
-    
+    path(
+        "admin/logout/",
+            LogoutView.as_view(
+            template_name="admin/logout.html",
+            next_page="/admin/login/"
+        ),
+        name="admin-logout"
+    ),
+    path('admin/', admin.site.urls),
 
-    path("", lambda request: redirect("files_root"), name="index"),
+    path("", lambda request: redirect("file_db_root"), name="index"),
 
     path('accounts/', include('accounts.urls')),
     path('dashboards/', include('dashboards.urls')),
     path('files/', include('files.urls')),
+    path('file_db/', include('file_db.urls')),
 ]
 
 if settings.DEBUG:

@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+{% load file_extras %}
+{% load static %}
+
+{% block content %}
+<h2>File Details</h2>
+
+<form method="post">
+    {% csrf_token %}
+
+    <table class="table table-bordered">
+        <tr>
+            <th>Filename</th>
+            <td>{{ file.basename }} / {{ file.original_file_name }}</td>
+        </tr>
+
+        <tr>
+            <th>Description</th>
+            <td>
+                <textarea name="description" class="form-control" rows="4">{{ file.description }}</textarea>
+            </td>
+        </tr>
+
+        <tr>
+            <th>Tags</th>
+            <td>
+                <input type="text" name="tags" class="form-control" value="{{ file.tags }}">
+            </td>
+        </tr>
+
+        <tr>
+            <th>MIME Type</th>
+            <td>{{ file.mimetype }}</td>
+        </tr>
+
+        <tr>
+            <th>Uploaded</th>
+            <td>{{ file.time_upload }}</td>
+        </tr>
+
+        <tr>
+            <th>Owner</th>
+            <td>{{ file.owner }}</td>
+        </tr>
+
+        <tr>
+            <th>Size</th>
+            <td>{{ file.file.size }} bytes</td>
+        </tr>
+    </table>
+
+    <div class="mt-3">
+        <button type="submit" class="btn btn-success">Save</button>
+
+        {% if file.is_displayable %}
+            <a href="{% url 'show_file' file.pk %}" class="btn btn-primary">Show</a>
+        {% endif %}
+
+        <a href="{% url 'download_file' file.pk %}" class="btn btn-secondary">Download</a>
+
+        <a href="{% url 'file_list' %}" class="btn btn-light">Back</a>
+    </div>
+</form>
+
+{% endblock %}

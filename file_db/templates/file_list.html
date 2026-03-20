@@ -1,0 +1,93 @@
+{% extends "base.html" %}
+{% load group_tags %}
+{% load static %}
+
+{% block content %}
+<h1>Uploaded Files</h1>
+
+<form method="get" class="mb-3 row g-2">
+
+    <div class="col-md-4">
+        <input type="text" name="q" class="form-control"
+               placeholder="Search files..."
+               value="{{ request.GET.q }}">
+    </div>
+
+    <div class="col-md-3">
+        <input type="date" name="date_from" class="form-control"
+               value="{{ request.GET.date_from }}">
+    </div>
+
+    <div class="col-md-3">
+        <input type="date" name="date_to" class="form-control"
+               value="{{ request.GET.date_to }}">
+    </div>
+
+    <div class="col-md-2">
+        <button type="submit" class="btn btn-primary w-100">Search</button>
+    </div>
+
+</form>
+
+<style>
+table, th, td {
+    border: 2px solid black;
+    border-style: double;
+    border-collapse: collapse;
+    padding: 5px;
+}
+</style>
+
+<table>
+    <tr>
+        <th>Filename</th> 
+        <th>Uploaded</th>
+        <th>Size</th>
+        <th>owner</th>
+        <th>Actions</th>
+    </tr>
+
+    {% for file in files %}
+    <tr>
+        <td>{{ file.original_file_name }}</td>
+        <td>{{ file.time_upload }}</td>
+        <td>{{ file.file_size }} bytes</td>
+        <td>{{ file.owner }}</td>
+        <td>&emsp;
+            <a href="{% url 'delete_file' file.id %}"
+               onclick="return confirm('Delete this file?');" style="text-decoration: none;">
+               <i class="fa-solid fa-trash-can"></i>
+            </a>
+            {% if file.is_displayable %}
+                &emsp;
+                <a href="{% url 'show_file' file.id %}" style="text-decoration: none;">
+                    <i class="fa fa-eye"></i>
+                </a>
+            {% endif %}
+            {% if file.is_plotable %}
+                &emsp;
+                <a href="{% url 'plot_file' file.id %}" style="text-decoration: none;">
+                    <i class="fa-solid fa-chart-line"></i>
+                </a>
+            {% endif %}
+
+            &emsp;
+            <a href="{% url 'info_file' file.id %}" style="text-decoration: none;">
+                <i class="fa-solid fa-info"></i>
+            </a>
+            &emsp;
+            <a href="{% url 'download_file' file.id %}" style="text-decoration: none;">
+                <i class="fa fa-download"></i>
+            </a>
+        </td>
+    </tr>
+    {% empty %}
+    <tr>
+        <td colspan="4">No files uploaded.</td>
+    </tr>
+    {% endfor %}
+</table>
+
+<a href="/file_db/upload">Upload a File</a>
+
+{% endblock %}

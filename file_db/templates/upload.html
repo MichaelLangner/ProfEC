@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% load group_tags %}
+{% load static %}
+
+{% block content %}
+Pleas specify a file and add credencials:
+<form method="post" enctype="multipart/form-data">
+        {% csrf_token %}
+        <input type="file" name="file">
+        <p></p>
+        
+        <textarea name="description" placeholder="Add a description" style="width:100%;height: 100px"></textarea>
+
+        <button type="submit">Upload</button>
+</form>
+{% endblock %}
