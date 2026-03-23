@@ -3,6 +3,19 @@
 {% load static %}
 
 {% block content %}
+{% if messages %}
+    {% for message in messages %}
+        <div class="alert 
+            {% if message.tags == 'success' %}alert-success
+            {% elif message.tags == 'error' %}alert-danger
+            {% elif message.tags == 'warning' %}alert-warning
+            {% else %}alert-info
+            {% endif %}
+        ">
+            {{ message }}
+        </div>
+    {% endfor %}
+{% endif %}
 Pleas specify a file and add credencials:
 <form method="post" enctype="multipart/form-data">
         {% csrf_token %}

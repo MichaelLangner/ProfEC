@@ -13,8 +13,18 @@ from django.http import HttpResponseForbidden
 import os
 from django.db.models import Q
 import json
+from django.contrib import messages
+from django.contrib.messages import get_messages
+from django.core.exceptions import ValidationError
 
+from rest_framework.views import APIView
+from rest_framework.response import Response
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.authentication import SessionAuthentication, TokenAuthentication
+from rest_framework.renderers import JSONRenderer, TemplateHTMLRenderer
+from django.contrib.auth.mixins import LoginRequiredMixin
 
+@login_required
 def file_info(request, pk):
     file_obj = get_object_or_404(File_DB, pk=pk)
 
@@ -37,29 +47,37 @@ def file_info(request, pk):
 
 @login_required
 def upload_file(request):
+    # Clear ALL old messages immediately when entering the view
+    storage = get_messages(request)
+    storage.used = True  # this is the key line
+
     if request.method == "POST" and request.FILES.get("file"):
         f = request.FILES["file"]
 
-        stored = File_DB.objects.create(
+        instance = File_DB(
             file=f,
             original_file_name=f.name,
-            
             file_size=f.size,
             mimetype=f.content_type,
-
-            time_upload=timezone.now(),  
+            time_upload=timezone.now(),
             time_deleted=None,
             owner=request.user,
-
             tags=request.POST.get("tags", ""),
-            access_customer = True,
-            access_staff = True,
-            access_super = True,
+            access_customer=True,
+            access_staff=True,
+            access_super=True,
             description=request.POST.get("description", "")
         )
-        print("Saved to:", stored.file.path)
 
-        return redirect("file_list")
+        try:
+            instance.full_clean()
+            instance.save()
+            messages.success(request, "File uploaded successfully.")
+            return redirect("file_list")
+
+        except ValidationError as e:
+            messages.error(request, e.messages[0])
+            return render(request, "upload.html")
 
     return render(request, "upload.html")
 
@@ -85,50 +103,71 @@ def admin_download(request, pk):
         filename=obj.original_file_name
     )
 
-@login_required
-def file_list(request):
-    user = request.user
-    query = request.GET.get("q", "").strip()
-    date_from = request.GET.get("date_from", "")
-    date_to = request.GET.get("date_to", "")
+# this is the heart of the programm, it works as html as well as api
+class FileListView(LoginRequiredMixin,APIView):
+    login_url = "/accounts/login/"
+    redirect_field_name = "next"
 
-    # Base queryset depending on permissions
-    if user.is_authenticated:
+    authentication_classes = [SessionAuthentication, TokenAuthentication]
+    permission_classes = [IsAuthenticated]
+    renderer_classes = [TemplateHTMLRenderer, JSONRenderer]
+
+    def get(self, request):
+        user = request.user
+        query = request.GET.get("q", "").strip()
+        date_from = request.GET.get("date_from", "")
+        date_to = request.GET.get("date_to", "")
+
+        # Base queryset depending on permissions
         if user.is_superuser or user.is_staff:
             files = File_DB.objects.filter(time_deleted__isnull=True)
         else:
             files = File_DB.objects.filter(owner=user)
-    else:
-        files = File_DB.objects.filter(is_public=True)
 
-    # Apply search filter if query exists
-    if query:
-        files = files.filter(
-            Q(original_file_name__icontains=query) |
-            Q(description__icontains=query) |
-            Q(tags__icontains=query) |
-            Q(mimetype__icontains=query) |
-            Q(owner__username__icontains=query)
-            
-        )
+        # Apply search filter if query exists
+        if query:
+            files = files.filter(
+                Q(original_file_name__icontains=query) |
+                Q(description__icontains=query) |
+                Q(tags__icontains=query) |
+                Q(mimetype__icontains=query) |
+                Q(owner__username__icontains=query)
+            )
 
-    # Date range filtering
-    if date_from:
-        files = files.filter(time_upload__date__gte=date_from)
+        if date_from:
+            files = files.filter(time_upload__date__gte=date_from)
 
-    if date_to:
-        files = files.filter(time_upload__date__lte=date_to)
+        if date_to:
+            files = files.filter(time_upload__date__lte=date_to)
 
-    # Order after filtering
-    files = files.order_by("-time_upload")
+        files = files.order_by("-time_upload")
 
-    # Add displayability flag to each file
-    for f in files:
-        f.is_displayable = can_inline(f.mimetype)
-        f.is_plotable = can_plot(f.mimetype)
-        f.basename = os.path.basename(f.file.name)
+        for f in files:
+            f.is_displayable = can_inline(f.mimetype)
+            f.is_plotable = can_plot(f.mimetype)
+            f.basename = os.path.basename(f.file.name)
 
-    return render(request, "file_list.html", {"files": files})
+        # If browser → render template
+        if request.accepted_renderer.format == "html":
+            return Response({"files": files}, template_name="file_list.html")
+
+        # If API client → return JSON
+        return Response({
+            "files": [
+                {
+                    "id": f.id,
+                    "name": f.original_file_name,
+                    "description": f.description,
+                    "tags": f.tags,
+                    "mimetype": f.mimetype,
+                    "basename": f.basename,
+                    "is_displayable": f.is_displayable,
+                    "is_plotable": f.is_plotable,
+                    "time_upload": f.time_upload,
+                }
+                for f in files
+            ]
+        })
 
 @login_required
 def delete_file(request, pk):
@@ -310,10 +349,5 @@ def plot_file(request, pk):
             "title_json": title_json,
 
         })
-
-
-    
-
-
 
 

@@ -19,23 +19,32 @@ from django.urls import path
 
 from file_db.views import upload_file
 from file_db.views import admin_download
-from file_db.views import file_list
+#from file_db.views import file_list
 from file_db.views import delete_file
 from file_db.views import show_file
 from file_db.views import info_file
 from file_db.views import download_file
 from file_db.views import plot_file
+from django.urls import include
+from file_db.views import FileListView
 
 urlpatterns = [
-    path("", file_list, name="file_db_root"),
+    path("", FileListView.as_view(), name="file_db_root"),
     path("upload/",upload_file,name="upload_file"),
     path("admin-download/<uuid:pk>/", admin_download, name="admin_download"),
-    path("file_list/", file_list, name="file_list"),
+    path("file_list/", FileListView.as_view(), name="file_list"),
     path("file_list/delete/<uuid:pk>/", delete_file, name="delete_file"),
     path("file_list/show/<uuid:pk>/", show_file, name="show_file"),
     path("file_list/info/<uuid:pk>/", info_file, name="info_file"),
     path("file_list/download/<uuid:pk>/", download_file, name="download_file"),
     path("file_list/plot/<uuid:pk>",plot_file,name="plot_file"),
+
+
+    path("api-auth/", include("rest_framework.urls")),
+
+    
+
+
 ]
 
 

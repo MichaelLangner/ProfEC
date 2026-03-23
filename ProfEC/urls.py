@@ -23,6 +23,7 @@ from django.conf.urls.static import static
 from django.shortcuts import redirect
 from django.urls import path, include
 
+
 urlpatterns = [
     path(
         "admin/logout/",
@@ -40,6 +41,7 @@ urlpatterns = [
     path('dashboards/', include('dashboards.urls')),
     path('files/', include('files.urls')),
     path('file_db/', include('file_db.urls')),
+   
 ]
 
 if settings.DEBUG:

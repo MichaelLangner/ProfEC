@@ -30,6 +30,7 @@ class FileDBAdmin(admin.ModelAdmin):
         "time_upload",      # read‑only
         "time_deleted",     # read‑only
         "tags",             # editable
+        "access_any",
         "access_customer",  # editable
         "access_staff",     # editable
         "access_super",     # editable
@@ -46,6 +47,7 @@ class FileDBAdmin(admin.ModelAdmin):
         "time_deleted",
         "owner",
         "tags",
+        "access_any",
         "access_customer",
         "access_staff",
         "access_super",
