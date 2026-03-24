@@ -1,28 +1,27 @@
+import json
+import os
+
 from django.shortcuts import render
-
-# for login/logout
-from django.contrib.auth.decorators import login_required # type: ignore
-
-# for upload
+from django.contrib.auth.decorators import login_required
 from django.utils import timezone
-from file_db.models import File_DB
 from django.http import FileResponse, Http404
 from django.shortcuts import get_object_or_404, redirect
 from django.contrib import messages
 from django.http import HttpResponseForbidden
-import os
 from django.db.models import Q
-import json
 from django.contrib import messages
 from django.contrib.messages import get_messages
 from django.core.exceptions import ValidationError
+
+from file_db.models import File_DB
 
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.authentication import SessionAuthentication, TokenAuthentication
 from rest_framework.renderers import JSONRenderer, TemplateHTMLRenderer
-from django.contrib.auth.mixins import LoginRequiredMixin
+from rest_framework import exceptions
+
 
 @login_required
 def file_info(request, pk):
@@ -45,41 +44,80 @@ def file_info(request, pk):
 
     return render(request, "file_info.html", {"file": file_obj})
 
-@login_required
-def upload_file(request):
-    # Clear ALL old messages immediately when entering the view
-    storage = get_messages(request)
-    storage.used = True  # this is the key line
+class FileUploadView(APIView):
+    authentication_classes = [SessionAuthentication, TokenAuthentication]
+    permission_classes = [IsAuthenticated]
+    renderer_classes = [TemplateHTMLRenderer, JSONRenderer]
+    login_url = "/accounts/login/"
 
-    if request.method == "POST" and request.FILES.get("file"):
-        f = request.FILES["file"]
+    def handle_exception(self, exc):
+        # Unauthenticated → hybrid behavior
+        if isinstance(exc, exceptions.NotAuthenticated):
+            if self.request.accepted_renderer.format == "html":
+                return redirect(self.login_url)
+            return Response({"detail": "Authentication required"}, status=401)
+        return super().handle_exception(exc)
+
+    def get(self, request):
+        # Browser GET → show upload form
+        if request.accepted_renderer.format == "html":
+            return render(request, "upload.html")
+        # API GET → not allowed
+        return Response({"detail": "Use POST to upload files"}, status=405)
+
+    def post(self, request):
+        # Clear old messages for browser
+        storage = get_messages(request)
+        storage.used = True
+
+        uploaded_file = request.FILES.get("file")
+        if not uploaded_file:
+            if request.accepted_renderer.format == "html":
+                messages.error(request, "No file provided.")
+                return render(request, "upload.html")
+            return Response({"error": "No file provided"}, status=400)
 
         instance = File_DB(
-            file=f,
-            original_file_name=f.name,
-            file_size=f.size,
-            mimetype=f.content_type,
+            file=uploaded_file,
+            original_file_name=uploaded_file.name or "uploaded_file",
+            file_size=getattr(uploaded_file, "size", 0),
+            mimetype=uploaded_file.content_type or "application/octet-stream",
             time_upload=timezone.now(),
             time_deleted=None,
             owner=request.user,
-            tags=request.POST.get("tags", ""),
+            tags=request.data.get("tags", ""),
             access_customer=True,
             access_staff=True,
             access_super=True,
-            description=request.POST.get("description", "")
+            description=request.data.get("description", "")
         )
 
         try:
             instance.full_clean()
             instance.save()
-            messages.success(request, "File uploaded successfully.")
-            return redirect("file_list")
+
+            # Browser success
+            if request.accepted_renderer.format == "html":
+                messages.success(request, "File uploaded successfully.")
+                return redirect("file_list")
+
+            # API success
+            return Response({
+                "id": str(instance.pk),
+                "name": instance.original_file_name,
+                "description": instance.description,
+                "tags": instance.tags,
+                "size": instance.file_size,
+                "mimetype": instance.mimetype,
+            }, status=201)
 
         except ValidationError as e:
-            messages.error(request, e.messages[0])
-            return render(request, "upload.html")
+            print("VALIDATION ERROR:", e.message_dict)
+            if request.accepted_renderer.format == "html":
+                messages.error(request, e.messages[0])
+                return render(request, "upload.html")
 
-    return render(request, "upload.html")
+            return Response({"error": e.messages[0]}, status=400)
 
 @login_required
 def delete_file(request, folder_name, file_name):
@@ -104,13 +142,26 @@ def admin_download(request, pk):
     )
 
 # this is the heart of the programm, it works as html as well as api
-class FileListView(LoginRequiredMixin,APIView):
-    login_url = "/accounts/login/"
-    redirect_field_name = "next"
-
+class FileListView(APIView):
     authentication_classes = [SessionAuthentication, TokenAuthentication]
     permission_classes = [IsAuthenticated]
-    renderer_classes = [TemplateHTMLRenderer, JSONRenderer]
+    renderer_classes = [JSONRenderer, TemplateHTMLRenderer]
+    login_url = "/accounts/login/"
+
+    def handle_exception(self, exc):
+        # If user is not authenticated
+        if isinstance(exc, exceptions.NotAuthenticated):
+            # Browser → redirect to login page
+            if self.request.accepted_renderer.format == "html":
+                return redirect(self.login_url)
+
+            # API client → JSON 401
+            return Response(
+                {"detail": "Authentication credentials were not provided."},
+                status=401
+            )
+
+        return super().handle_exception(exc)
 
     def get(self, request):
         user = request.user
@@ -122,7 +173,7 @@ class FileListView(LoginRequiredMixin,APIView):
         if user.is_superuser or user.is_staff:
             files = File_DB.objects.filter(time_deleted__isnull=True)
         else:
-            files = File_DB.objects.filter(owner=user)
+            files = File_DB.objects.filter(owner=user,time_deleted__isnull=True)
 
         # Apply search filter if query exists
         if query:
@@ -147,11 +198,11 @@ class FileListView(LoginRequiredMixin,APIView):
             f.is_plotable = can_plot(f.mimetype)
             f.basename = os.path.basename(f.file.name)
 
-        # If browser → render template
+        # Browser → HTML template
         if request.accepted_renderer.format == "html":
             return Response({"files": files}, template_name="file_list.html")
 
-        # If API client → return JSON
+        # API client → JSON
         return Response({
             "files": [
                 {
@@ -168,7 +219,7 @@ class FileListView(LoginRequiredMixin,APIView):
                 for f in files
             ]
         })
-
+    
 @login_required
 def delete_file(request, pk):
     file_obj = get_object_or_404(File_DB, pk=pk)
@@ -231,11 +282,13 @@ PLOTABLE_MIME_TYPES = {
     "text/csv",
 }
 
+# checks if mimetype could be shown in browser
 def can_inline(mime):
     if mime is None:
         return False
     return any(mime.startswith(t) for t in DISPLAYABLE_MIME_TYPES)
 
+# checks if mime is csv 
 def can_plot(mime):
     if mime is None:
         return False
@@ -264,23 +317,45 @@ def info_file(request, pk):
 
     return render(request, "file_info.html", {"file": file_obj})
 
-@login_required
-def download_file(request, pk):
-    file_obj = get_object_or_404(File_DB, pk=pk)
+class FileDownloadView(APIView):
+    authentication_classes = [SessionAuthentication, TokenAuthentication]
+    permission_classes = [IsAuthenticated]
+    login_url = "/accounts/login/"
 
-    # Permission check
-    user = request.user
-    if not (user.is_superuser or user.is_staff):
-        if file_obj.owner != user:
-            return HttpResponseForbidden("You do not have permission to download this file.")
+    def handle_exception(self, exc):
+        # Unauthenticated → hybrid behavior
+        if isinstance(exc, exceptions.NotAuthenticated):
+            # Browser → redirect to login page
+            if self.request.accepted_renderer.format == "html":
+                return redirect(self.login_url)
 
-    # Extract original filename
-    original_name = os.path.basename(file_obj.file.name)
+            # API client → JSON 401
+            return Response(
+                {"detail": "Authentication credentials were not provided."},
+                status=401
+            )
 
-    # Force download
-    response = FileResponse(open(file_obj.file.path, "rb"), content_type=file_obj.mimetype)
-    response["Content-Disposition"] = f'attachment; filename="{original_name}"'
-    return response
+        return super().handle_exception(exc)
+
+    def get(self, request, pk):
+        file_obj = get_object_or_404(File_DB, pk=pk)
+
+        # Permission check
+        user = request.user
+        if not (user.is_superuser or user.is_staff):
+            if file_obj.owner != user:
+                return Response({"detail": "Not allowed"}, status=403)
+
+        # Extract original filename
+        original_name = os.path.basename(file_obj.file.name)
+
+        # Return file (works for browser + API client)
+        return FileResponse(
+            open(file_obj.file.path, "rb"),
+            content_type=file_obj.mimetype,
+            as_attachment=True,
+            filename=original_name
+        )
 
 
 @login_required
@@ -306,7 +381,7 @@ def plot_file(request, pk):
     for i in range(0,l):
         if (len(lines[i].split(","))!=2): 
             ok=0
-
+    # if filestructure is recognised transfer it into json
     if (ok):
         header_x=lines[0].split(",")[0]
         header_y=lines[0].split(",")[1]
@@ -347,7 +422,6 @@ def plot_file(request, pk):
             "data_x_json": data_x_json,
             "data_y_json": data_y_json,
             "title_json": title_json,
-
         })
 
 
