@@ -41,7 +41,7 @@ urlpatterns = [
     path('dashboards/', include('dashboards.urls')),
     path('files/', include('files.urls')),
     path('file_db/', include('file_db.urls')),
-   
+    path('message_db/',include('message_db.urls')),
 ]
 
 if settings.DEBUG:

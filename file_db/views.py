@@ -9,7 +9,6 @@ from django.shortcuts import get_object_or_404, redirect
 from django.contrib import messages
 from django.http import HttpResponseForbidden
 from django.db.models import Q
-from django.contrib import messages
 from django.contrib.messages import get_messages
 from django.core.exceptions import ValidationError
 
@@ -21,6 +20,8 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.authentication import SessionAuthentication, TokenAuthentication
 from rest_framework.renderers import JSONRenderer, TemplateHTMLRenderer
 from rest_framework import exceptions
+
+from file_db.throttles import UploadThrottle   
 
 
 @login_required
@@ -48,6 +49,7 @@ class FileUploadView(APIView):
     authentication_classes = [SessionAuthentication, TokenAuthentication]
     permission_classes = [IsAuthenticated]
     renderer_classes = [TemplateHTMLRenderer, JSONRenderer]
+    throttle_classes = [UploadThrottle]
     login_url = "/accounts/login/"
 
     def handle_exception(self, exc):
@@ -77,6 +79,20 @@ class FileUploadView(APIView):
                 return render(request, "upload.html")
             return Response({"error": "No file provided"}, status=400)
 
+        MAX_UPLOAD_SIZE=10*1024*1024
+
+        if uploaded_file.size > MAX_UPLOAD_SIZE:
+            # Browser request → show message on page
+            if request.accepted_renderer.format == "html":
+                messages.error(request, "File too large. Maximum allowed size is 10 MB.")
+                return render(request, "upload.html")
+
+            # API request → JSON error
+            return Response(
+                {"error": "File too large. Maximum allowed size is 10 MB."},
+                status=400
+            )
+
         instance = File_DB(
             file=uploaded_file,
             original_file_name=uploaded_file.name or "uploaded_file",
@@ -91,6 +107,7 @@ class FileUploadView(APIView):
             access_super=True,
             description=request.data.get("description", "")
         )
+
 
         try:
             instance.full_clean()

@@ -53,6 +53,7 @@ INSTALLED_APPS = [
     'dashboards',
     'files',
     'file_db',
+    'message_db',
 ]
 
 MIDDLEWARE = [
@@ -124,7 +125,11 @@ REST_FRAMEWORK = {
     ],
     'DEFAULT_PERMISSION_CLASSES': [
         'rest_framework.permissions.IsAuthenticated',
-    ]
+    ],
+    "DEFAULT_THROTTLE_RATES": {
+        "uploads": "20/hour",
+    }
+ 
 }
 
 # Internationalization

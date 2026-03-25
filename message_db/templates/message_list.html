@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+{% load group_tags %}
+{% load static %}
+
+{% block content %}
+<h1>Messages</h1>
+
+
+<form method="get" class="mb-3 row g-2">
+
+    <div class="col-md-4">
+        <input type="text" name="q" class="form-control"
+               placeholder="Search message..."
+               value="{{ request.GET.q }}">
+    </div>
+
+    <div class="col-md-3">
+        <input type="date" name="date_from" class="form-control"
+               value="{{ request.GET.date_from }}">
+    </div>
+
+    <div class="col-md-3">
+        <input type="date" name="date_to" class="form-control"
+               value="{{ request.GET.date_to }}">
+    </div>
+
+    <div class="col-md-2">
+        <button type="submit" class="btn btn-primary w-100">Search</button>
+    </div>
+
+</form>
+<a href="/message_db/create">Create a new message</a>
+<div style="border-style: double;">
+{% for message in messages %}
+    <div style="border-style: double;">
+        <b>Date : {{ message.message_created }} From: {{ message.message_owner }} To: {{ message.message_recipient }}</b>
+        <p><b>Topic : {{ message.message_topic }}</b>
+            <a href="{% url 'delete_message' message.id %}"
+               onclick="return confirm('Delete this message?');" style="text-decoration: none;">
+               <i class="fa-solid fa-trash-can"></i>
+            </a></p>
+        <p>{{ message.message_text }}</p>
+    </div>
+{% empty %}
+    No messages yet.
+{% endfor %}
+</div>
+
+
+
+
+{% endblock %}
