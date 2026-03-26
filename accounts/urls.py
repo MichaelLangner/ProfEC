@@ -21,8 +21,8 @@ from django.contrib.auth import views as auth_views
 from django.contrib.auth.views import LogoutView 
 
 from accounts.views import signup
-
-
+from accounts.views import profile
+from accounts.views import change_password
 
 urlpatterns = [
     
@@ -30,6 +30,7 @@ urlpatterns = [
     path("signup/", signup, name="signup"),
     path("login/", auth_views.LoginView.as_view(template_name="login.html"), name="login"),
     path("logout/", auth_views.LogoutView.as_view(template_name="logout.html"), name="logout"),
-    
+    path("profile/", profile, name="profile"),
+    path("profile/change-password/", change_password, name="change_password")
 ]
 

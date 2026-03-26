@@ -13,8 +13,6 @@ class Message_DB(models.Model):
     message_topic = models.TextField(blank=False)
     message_text = models.TextField(blank=False)
 
-
-
     class Meta:
         verbose_name = "message_DB"
         verbose_name_plural = "messages_DB"

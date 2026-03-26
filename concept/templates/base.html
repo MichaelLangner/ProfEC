@@ -19,6 +19,7 @@
         <div>
             {% if user.is_authenticated %}
                 <span class="navbar-text me-3">Hello, {{ user.username }}</span>
+                <a href="{% url 'profile' %}">Edit Profile</a>
                  <form action="{% url 'logout' %}" method="post" style="display:inline;">
                     {% csrf_token %}
                     <button type="submit" style="background:none;border:none;color:blue;cursor:pointer;">

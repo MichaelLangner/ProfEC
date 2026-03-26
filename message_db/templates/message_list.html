@@ -29,7 +29,12 @@
     </div>
 
 </form>
-<a href="/message_db/create">Create a new message</a>
+
+<div style="display: flex; justify-content: space-between;">
+    <span><a href="/message_db/create">Create a new message</a></span>
+    <span><a href="/file_db/">Show uploaded files</a></span>
+</div>
+ 
 <div style="border-style: double;">
 {% for message in messages %}
     <div style="border-style: double;">

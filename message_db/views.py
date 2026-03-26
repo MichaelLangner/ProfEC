@@ -3,7 +3,7 @@
 from django.shortcuts import render
 from django.contrib.auth.decorators import login_required
 from django.utils import timezone
-
+from accounts.models import User
 from django.shortcuts import get_object_or_404, redirect
 from django.contrib import messages
 from django.http import HttpResponseForbidden
@@ -56,15 +56,24 @@ class MessageCreateView(APIView):
                 #message.error(request, "No message provided.")
                 return render(request, "create.html")
             return Response({"error": "No message provided"}, status=400)
-
-        instance = Message_DB(
-            message_owner=request.user,
-            message_recipient=None,
-            message_created=timezone.now(),
-            message_deleted=None,
-            message_topic=request.data.get("topic",""),
-            message_text=request.data.get("message",""),
-        )
+        if (request.user.is_staff | request.user.is_superuser):
+            instance = Message_DB(
+                message_owner=request.user,
+                message_recipient=User.objects.get(username=request.data.get("recipient","")),
+                message_created=timezone.now(),
+                message_deleted=None,
+                message_topic=request.data.get("topic",""),
+                message_text=request.data.get("message",""),
+                )
+        else:
+            instance = Message_DB(
+                message_owner=request.user,
+                message_recipient="Staff",
+                message_created=timezone.now(),
+                message_deleted=None,
+                message_topic=request.data.get("topic",""),
+                message_text=request.data.get("message",""),
+                )
 
 
         try:
@@ -127,8 +136,8 @@ class MessageListView(APIView):
             messages = Message_DB.objects.filter(message_deleted__isnull=True)
         else:
             messages = Message_DB.objects.filter(
-                Q(message_owner=user,time_deleted__isnull=True) |
-                Q(message_recipient=user,time_deleted__isnull=True)
+                Q(message_owner=user,message_deleted__isnull=True) |
+                Q(message_recipient=user,message_deleted__isnull=True)
                 )
 
         # Apply search filter if query exists
