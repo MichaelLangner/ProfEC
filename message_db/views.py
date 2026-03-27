@@ -19,7 +19,7 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.authentication import SessionAuthentication, TokenAuthentication
 from rest_framework.renderers import JSONRenderer, TemplateHTMLRenderer
 from rest_framework import exceptions
-
+from django.http import HttpResponseBadRequest
 from file_db.throttles import UploadThrottle   
 
 # Create your views here.
@@ -57,14 +57,23 @@ class MessageCreateView(APIView):
                 return render(request, "create.html")
             return Response({"error": "No message provided"}, status=400)
         if (request.user.is_staff | request.user.is_superuser):
-            instance = Message_DB(
-                message_owner=request.user,
-                message_recipient=User.objects.get(username=request.data.get("recipient","")),
-                message_created=timezone.now(),
-                message_deleted=None,
-                message_topic=request.data.get("topic",""),
-                message_text=request.data.get("message",""),
-                )
+            # check if user exists
+            recipient=request.data.get("recipient","")
+            if User.objects.filter(username=recipient).exists():
+                instance = Message_DB(
+                    message_owner=request.user,
+                    message_recipient=User.objects.get(username=request.data.get("recipient","")),
+                    message_created=timezone.now(),
+                    message_deleted=None,
+                    message_topic=request.data.get("topic",""),
+                    message_text=request.data.get("message",""),
+                    )
+            else:
+                # Browser error
+                if request.accepted_renderer.format == "html":
+                    return HttpResponseBadRequest("User does not exist.")
+                else:
+                    raise ValidationError("User with this username does not exist.")
         else:
             instance = Message_DB(
                 message_owner=request.user,

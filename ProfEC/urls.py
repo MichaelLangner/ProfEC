@@ -42,6 +42,8 @@ urlpatterns = [
     path('files/', include('files.urls')),
     path('file_db/', include('file_db.urls')),
     path('message_db/',include('message_db.urls')),
+
+    path("api-auth/", include("rest_framework.urls")), # this is only needed once per project!!!
 ]
 
 if settings.DEBUG:

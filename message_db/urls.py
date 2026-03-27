@@ -16,7 +16,7 @@ Including another URLconf
 """
 
 from django.urls import path 
-from django.urls import include
+
 from message_db.views import MessageListView
 from message_db.views import delete_message
 from message_db.views import MessageCreateView
@@ -27,7 +27,7 @@ urlpatterns = [
     path("message_list/", MessageListView.as_view(), name="message_list"),
     path("message_list/delete/<int:message_id>/", delete_message, name="delete_message"),
 
-    path("api-auth/", include("rest_framework.urls")),
+    
 ]
 
 

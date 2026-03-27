@@ -22,7 +22,7 @@ from file_db.views import delete_file
 from file_db.views import show_file
 from file_db.views import info_file
 from file_db.views import plot_file
-from django.urls import include
+
 from file_db.views import FileListView
 from file_db.views import FileDownloadView
 from file_db.views import FileUploadView
@@ -39,7 +39,7 @@ urlpatterns = [
     path("file_list/plot/<uuid:pk>",plot_file,name="plot_file"),
 
 
-    path("api-auth/", include("rest_framework.urls")),
+    
 ]
 
 
