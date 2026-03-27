@@ -68,7 +68,7 @@ class MessageCreateView(APIView):
         else:
             instance = Message_DB(
                 message_owner=request.user,
-                message_recipient="Staff",
+                message_recipient=None, # do not know if this should remain empty or if a list of staff members should be given
                 message_created=timezone.now(),
                 message_deleted=None,
                 message_topic=request.data.get("topic",""),
